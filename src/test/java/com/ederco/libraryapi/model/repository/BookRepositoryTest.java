@@ -10,6 +10,8 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import java.util.Optional;
+
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @ExtendWith(SpringExtension.class)
@@ -32,11 +34,14 @@ public class BookRepositoryTest {
     public void returnTrueWhenIsbnExists(){
         //cenario
         String isbn = "1213213";
-        Book book = Book.builder()
-                .title("Aventuras")
-                .author("Fulano")
-                .isbn(isbn)
-                .build();
+        //Podemos extrair este método , antes estava assim  ...
+//        Book book = Book.builder()
+//                .title("Aventuras")
+//                .author("Fulano")
+//                .isbn(isbn)
+//                .build();
+        //Depois ficou assim ...
+        Book book = createNewBook(isbn);
         entityManager.persist(book);
 
         //execução
@@ -45,6 +50,15 @@ public class BookRepositoryTest {
         //verificação
         assertThat(exists).isTrue();
     }
+
+    private static Book createNewBook(String isbn) {
+        return Book.builder()
+                .title("Aventuras")
+                .author("Fulano")
+                .isbn(isbn)
+                .build();
+    }
+
     @Test
     @DisplayName("Deve retornar false quando não existir um livro na base com o isbn informado.")
     public void returnFalseWhenIsbnDoesntExists(){
@@ -56,6 +70,20 @@ public class BookRepositoryTest {
 
         //verificação
         assertThat(exists).isFalse();
+    }
+    @Test
+    @DisplayName("Deve obter um livro por id.")
+    public void findByIdTest(){
+        //cenário
+        Book book = createNewBook("123");
+        entityManager.persist(book);
+
+        //execução
+        Optional<Book> foundBook = repository.findById(book.getId());
+
+        //verificação
+        assertThat(foundBook.isPresent()).isTrue();
+
     }
 
 }

@@ -20,6 +20,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
+import java.util.Optional;
+
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -72,7 +74,6 @@ public class BookControllerTest {
 
     }
 
-
     @Test
     @DisplayName("Deve lançar erro de validação quando não houver dados suficiente para criação do livro.")
     public void createInvalidBookTest() throws Exception {
@@ -101,15 +102,168 @@ public class BookControllerTest {
 
         MockHttpServletRequestBuilder request = MockMvcRequestBuilders
                 .post(BOOK_API)
-                .contentType(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON) //Como o método é um POST eu preciso passar um corpo (content).
                 .accept(APPLICATION_JSON)
-                .content(json);
+                .content(json); //Como o método é um POST eu preciso passar um corpo (content).
         mvc
                 .perform(request)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("errors", hasSize(1)))
                 .andExpect(jsonPath("errors[0]").value(mensagemErro));
 
+    }
+
+    @Test
+    @DisplayName("Deve obter informações de um livro")
+    public void getBookDetailsTest() throws Exception {
+        //cenário (given)
+        Long id = 1l;
+
+        Book book = Book.builder()
+                .id(id)
+                .title(createNewBook().getTitle())
+                .author(createNewBook().getAuthor())
+                .isbn(createNewBook().getIsbn())
+                .build();
+        BDDMockito.given(service.getById(id)).willReturn(Optional.of(book));
+
+        //execução (when)
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders
+                .get(BOOK_API.concat("/" + id))
+                //Quando o método é um GET eu NÂO preciso passar um corpo (content)
+                .accept(APPLICATION_JSON);
+        //Quando o método é um GET eu NÃO preciso passar um corpo (content)
+        mvc
+                .perform(request)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("id").value(id))
+                .andExpect(jsonPath("title").value(createNewBook().getTitle()))
+                .andExpect(jsonPath("author").value(createNewBook().getAuthor()))
+                .andExpect(jsonPath("isbn").value(createNewBook().getIsbn()));
+    }
+
+    @Test
+    @DisplayName("Deve retornar resource not found quando o livro procuraddo não existir")
+    public void bookNotFoundTest() throws Exception {
+        //cenário
+        BDDMockito.given(service.getById(Mockito.anyLong())).willReturn(Optional.empty());
+        //execução (when)
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders
+                .get(BOOK_API.concat("/" + 1))
+                //Quando o método é um GET eu NÂO preciso passar um corpo (content)
+                .accept(APPLICATION_JSON);
+        //Quando o método é um GET eu NÃO preciso passar um corpo (content)
+        mvc
+                .perform(request)
+                .andExpect(status().isNotFound());
+
+    }
+
+    @Test
+    @DisplayName("Deve deletar um livro")
+    public void deleteBookTest() throws Exception {
+        //cenário
+        //Quando for deletar um livro , ele deve existir no servidor,
+        //tenho que mockar o getById
+        BDDMockito.given(service.getById(Mockito.anyLong())).willReturn(Optional.of(Book.builder()
+                .id(1l)//Para deletar um livro no servidor só interessa o id
+                .build()));
+        //execução
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders
+                .delete(BOOK_API.concat("/" + 1));
+        //Quando o método é um DELETE eu NÂO preciso passar um corpo (content)
+        mvc
+                .perform(request)
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("Deve retornar resource not found quando não encontrar o livro para deletar")
+    public void deleteInexistentBookTest() throws Exception {
+        //cenário
+        //Quando for deletar um livro , ele deve existir no servidor,
+        //tenho que mockar o getById
+        BDDMockito.given(service.getById(Mockito.anyLong())).willReturn(Optional.empty());
+        //execução
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders
+                .delete(BOOK_API.concat("/" + 1));
+        //Quando o método é um DELETE eu NÂO preciso passar um corpo (content)
+        mvc
+                .perform(request)
+                .andExpect(status().isNotFound());
+    }
+
+    //Vai ser bem parecido com o delete...
+    @Test
+    @DisplayName("Deve atualizar um livro")
+    public void updateBookTest() throws Exception {
+        //cenário
+        Long id = 1l;
+        String json = new ObjectMapper().writeValueAsString(createNewBook());
+        //Primeiramente verifica se o livro existe (getById) para atualizar o recurso no servidor
+        //**Observe o código antes de introduzir uma váriável...
+//        BDDMockito.given(service.getById(Mockito.anyLong())).willReturn(Optional.of(Book.builder()
+//                .id(1l)
+//                .title("some title")
+//                .author("some author")
+//                .isbn("321")
+//                .build()));
+        //**Observe agora o código após introduzir uma váriável Book.builder...
+        Book updatingBook = Book.builder()
+                .id(1l)
+                .title("some title")
+                .author("some author")
+                .isbn("1213213")
+                .build();
+        BDDMockito.given(service.getById(id)).willReturn(Optional.of(updatingBook));
+        //Temos que adicionar o objeto porquê por default o Mock retorna como "null"
+        Book updatedBook = Book.builder()
+                .id(id)
+                .author("Arthur")
+                .title("As Aventuras")
+                .isbn("1213213")
+                .build();
+        BDDMockito.given(service.update(updatingBook)).willReturn(updatedBook);
+        //execução
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders
+                .put(BOOK_API.concat("/" + 1))
+                .content(json)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON);
+        mvc
+                .perform(request)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("id").value(id))
+                .andExpect(jsonPath("title").value(createNewBook().getTitle()))
+                .andExpect(jsonPath("author").value(createNewBook().getAuthor()))
+                .andExpect(jsonPath("isbn").value("1213213"));
+
+    }
+
+    @Test
+    @DisplayName("Deve retornar 404 ao tentar atualizar um livro inexistente")
+    public void updateInexistentBookTest() throws Exception {
+        //cenário
+        String json = new ObjectMapper().writeValueAsString(createNewBook());
+        //não vamos precisar de um liro , pois mockaremos como vazio "empty()"
+//        Book updatingBook = Book.builder()
+//                .id(1l)
+//                .title("some title")
+//                .author("some author")
+//                .isbn("321")
+//                .build();
+        //Independente do id passado , deverá retornar 404 , então usamos o "Mockito.anyLong()",
+        // e também retornamos o Optional vazio "empty()"...
+        BDDMockito.given(service.getById(Mockito.anyLong())).willReturn(Optional.empty());
+        //execução
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders
+                .put(BOOK_API.concat("/" + 1))
+                .content(json)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON);
+        mvc
+                .perform(request)
+                .andExpect(status().isNotFound());
     }
 
     private static BookDTO createNewBook() {
