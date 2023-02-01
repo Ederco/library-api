@@ -31,7 +31,7 @@ public class BookRepositoryTest {
 
     @Test
     @DisplayName("Deve retornar verdadeiro quando existir um livro na base com o isbn informado.")
-    public void returnTrueWhenIsbnExists(){
+    public void returnTrueWhenIsbnExists() {
         //cenario
         String isbn = "1213213";
         //Podemos extrair este método , antes estava assim  ...
@@ -61,7 +61,7 @@ public class BookRepositoryTest {
 
     @Test
     @DisplayName("Deve retornar false quando não existir um livro na base com o isbn informado.")
-    public void returnFalseWhenIsbnDoesntExists(){
+    public void returnFalseWhenIsbnDoesntExists() {
         //cenario
         String isbn = "1213213";
 
@@ -71,9 +71,10 @@ public class BookRepositoryTest {
         //verificação
         assertThat(exists).isFalse();
     }
+
     @Test
     @DisplayName("Deve obter um livro por id.")
-    public void findByIdTest(){
+    public void findByIdTest() {
         //cenário
         Book book = createNewBook("123");
         entityManager.persist(book);
@@ -86,4 +87,32 @@ public class BookRepositoryTest {
 
     }
 
+    @Test
+    @DisplayName("Deve salvar um livro.")
+    public void saveBookTest() {
+        //cenário
+        Book book = createNewBook("123");
+
+        //execução
+        Book savedBook = repository.save(book);
+
+        //verificação
+        assertThat(savedBook.getId()).isNotNull();
+    }
+    @Test
+    @DisplayName("Deve deletar um livro")
+    public void deleteBookTest(){
+
+        Book book = createNewBook("123");
+        entityManager.persist(book);
+
+        Book foundBook = entityManager.find(Book.class, book.getId());
+
+        repository.delete(foundBook);
+
+        Book deletedBook = entityManager.find(Book.class, book.getId());
+        assertThat(deletedBook).isNull();
+
+    }
 }
+

@@ -1,17 +1,19 @@
 package com.ederco.libraryapi.api.resource;
 
 import com.ederco.libraryapi.api.dto.BookDTO;
-import com.ederco.libraryapi.api.exceptions.ApiErrors;
-import com.ederco.libraryapi.exception.BusinessException;
 import com.ederco.libraryapi.model.entity.Book;
 import com.ederco.libraryapi.service.BookService;
 import jakarta.validation.Valid;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
-import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/books")
@@ -97,18 +99,22 @@ public class BookController {
         }).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
     }
+    @GetMapping
+    public Page<BookDTO> find(BookDTO dto, Pageable pageRequest){
+        Book filter = modelMapper.map(dto, Book.class);
+        //**aqui havia apenas uma página de book "Page<Book>"
+        Page<Book> result = service.find(filter, pageRequest);
+        List<BookDTO> list = result.getContent().stream()
+                //retorna o "stream" de " BookDTO"
+                .map(entity -> modelMapper.map(entity, BookDTO.class))
+                .collect(Collectors.toList());
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiErrors handleValidationExceptions(MethodArgumentNotValidException ex){
-        BindingResult bindingResult = ex.getBindingResult();
+        //Para criar uma página , passamos 3 parâmetros :
+        //primeiro o conteúdo: "list"
+        //segundo a página atual e quantos registros tem: "pageRequest"
+        //terceiro o total de elementos :"result.getTotalElements()"
+        return new PageImpl<BookDTO>(list, pageRequest,result.getTotalElements());
 
-        return new ApiErrors(bindingResult) ;
     }
 
-    @ExceptionHandler(BusinessException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiErrors handleBusinessException(BusinessException ex){
-        return new ApiErrors(ex);
-    }
 }

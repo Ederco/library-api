@@ -11,9 +11,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Example;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -30,6 +36,14 @@ public class BookServiceTest {
     @BeforeEach
     public void setUp() {
         this.service = new BookServiceImpl(repository);
+    }
+
+    private static Book createValidBook() {
+        return Book.builder()
+                .isbn("123")
+                .author("Fulano")
+                .title("As Aventuras")
+                .build();
     }
 
     @Test
@@ -53,14 +67,6 @@ public class BookServiceTest {
         assertThat(savedBook.getTitle()).isEqualTo("As aventuras");
         assertThat(savedBook.getAuthor()).isEqualTo("Fulano");
 
-    }
-
-    private static Book createValidBook() {
-        return Book.builder()
-                .isbn("123")
-                .author("Fulano")
-                .title("As aventuras")
-                .build();
     }
 
     @Test
@@ -120,5 +126,87 @@ public class BookServiceTest {
 //        assertThat(foundBook.get().getIsbn()).isEqualTo(book.getIsbn());
 //        assertThat(foundBook.get().getAuthor()).isEqualTo(book.getAuthor());
 //        assertThat(foundBook.get().getTitle()).isEqualTo(book.getTitle());
+    }
+    @Test
+    @DisplayName("Deve deletar um livro")
+    public void deleteBookTest(){
+        //cenário
+        Book book = Book.builder().id(1l).build();
+
+        //execução
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> service.delete(book));
+
+        //verificação
+        Mockito.verify(repository , Mockito.times(1)).delete(book);
+    }
+    @Test
+    @DisplayName("Deve ocorrer erro ao tentar deletar um livro existente")
+    public void deleteInvalidBookTest(){
+
+        Book book = new Book();
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, ()-> service.delete(book));
+
+        Mockito.verify(repository,Mockito.never()).delete(book);
+    }
+    @Test
+    @DisplayName("Deve atualizar um livro")
+    public void updateBookTest(){
+        //cenário
+        long id = 1l;
+
+        //livro a atualizar
+        Book updatingBook = Book.builder().id(id).build();
+
+        //simulação
+        Book updatedBook = createValidBook();
+        updatedBook.setId(id);
+
+        Mockito.when(repository.save(updatingBook)).thenReturn(updatedBook);
+
+        //execução
+        Book book = service.update(updatingBook);
+
+        //verificação
+        assertThat(book.getId()).isEqualTo(updatedBook.getId());
+        assertThat(book.getTitle()).isEqualTo(updatedBook.getTitle());
+        assertThat(book.getIsbn()).isEqualTo(updatedBook.getIsbn());
+        assertThat(book.getAuthor()).isEqualTo(updatedBook.getAuthor());
+
+    }
+    @Test
+    @DisplayName("Deve ocorrer erro ao tentar atualizar um livro existente")
+    public void updateInvalidBookTest(){
+
+        Book book = new Book();
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, ()-> service.update(book));
+
+        Mockito.verify(repository,Mockito.never()).save(book);
+    }
+    @Test
+    @DisplayName("Deve filtrar livros pelas propriedades")
+    public void findBookTest(){
+        //cenario
+        Book book = createValidBook();
+
+        PageRequest pageRequest = PageRequest.of(0, 10);
+
+        List<Book> lista = Arrays.asList(book);
+        //O PageImpl vai receber 3 parâmetros:
+        //Page<Book> page = new PageImpl<Book>(list, pageRequest,1);
+        Page<Book> page = new PageImpl<>(lista, pageRequest, 1);
+        Mockito.when(repository.findAll(Mockito.any(Example.class), Mockito.any(PageRequest.class)))
+                .thenReturn(page);
+
+        //execução
+        Page<Book> result = service.find(book, pageRequest);
+
+        //verificações
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.getContent()).isEqualTo(lista);
+        assertThat(result.getPageable().getPageNumber()).isEqualTo(0);
+        assertThat(result.getPageable().getPageSize()).isEqualTo(10);
+
     }
 }
