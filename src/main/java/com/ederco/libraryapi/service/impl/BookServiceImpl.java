@@ -4,6 +4,7 @@ import com.ederco.libraryapi.exception.BusinessException;
 import com.ederco.libraryapi.model.entity.Book;
 import com.ederco.libraryapi.model.repository.BookRepository;
 import com.ederco.libraryapi.service.BookService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.data.domain.Page;
@@ -15,6 +16,7 @@ import java.util.Optional;
 @Service
 public class BookServiceImpl implements BookService {
 
+    @Autowired
     private BookRepository repository;
 
     public BookServiceImpl(BookRepository repository) {
@@ -71,6 +73,6 @@ public class BookServiceImpl implements BookService {
 
     @Override
     public Optional<Book> getBookByIsbn(String isbn) {
-        return null;
+        return repository.findByIsbn(isbn);
     }
 }

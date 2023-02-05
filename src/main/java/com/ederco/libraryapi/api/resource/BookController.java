@@ -1,9 +1,13 @@
 package com.ederco.libraryapi.api.resource;
 
 import com.ederco.libraryapi.api.dto.BookDTO;
+import com.ederco.libraryapi.api.dto.LoanDTO;
 import com.ederco.libraryapi.model.entity.Book;
+import com.ederco.libraryapi.model.entity.Loan;
 import com.ederco.libraryapi.service.BookService;
+import com.ederco.libraryapi.service.LoanService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -17,15 +21,19 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/books")
+@RequiredArgsConstructor
 public class BookController {
 
-    private BookService service;
-    private ModelMapper modelMapper;
+    private final BookService service;
+    private final LoanService loanService;
+    private final ModelMapper modelMapper;
 
-    public BookController(BookService service, ModelMapper modelMapper) {
-        this.service = service;
-        this.modelMapper = modelMapper;
-    }
+//    Com o uso do @RequiredArgsConstructor não é necessário o uso do construtor ...
+//    public BookController(BookService service, ModelMapper modelMapper, LoanService loanService) {
+//        this.service = service;
+//        this.modelMapper = modelMapper;
+//        this.loanService = loanService;
+//    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -114,7 +122,27 @@ public class BookController {
         //segundo a página atual e quantos registros tem: "pageRequest"
         //terceiro o total de elementos :"result.getTotalElements()"
         return new PageImpl<BookDTO>(list, pageRequest,result.getTotalElements());
+    }
+
+    @GetMapping("{id}/loans")
+    public Page<LoanDTO> loansByBOOK( @PathVariable Long id, Pageable pageable ){
+        Book book = service.getById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        //Aqui estamos retornando uma consulta páginada de Loan , mas ...
+        Page<Loan> result = loanService.getLoansByBook(book, pageable);
+        //precisamos converter para uma consulta de LoanDTO ...
+        List<LoanDTO> list = result.getContent() //retorna a lista
+                .stream()
+                .map(loan -> {
+                    Book loanBook = loan.getBook();
+                    BookDTO bookDTO = modelMapper.map(loanBook, BookDTO.class);
+                    LoanDTO loanDTO = modelMapper.map(loan, LoanDTO.class);
+                    loanDTO.setBook(bookDTO);
+                    return loanDTO;
+                }).collect(Collectors.toList());
+        return new PageImpl<LoanDTO>(list, pageable, result.getTotalElements());
 
     }
+
+
 
 }

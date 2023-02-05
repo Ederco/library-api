@@ -33,7 +33,7 @@ public class BookRepositoryTest {
     @DisplayName("Deve retornar verdadeiro quando existir um livro na base com o isbn informado.")
     public void returnTrueWhenIsbnExists() {
         //cenario
-        String isbn = "1213213";
+        String isbn = "123";
         //Podemos extrair este método , antes estava assim  ...
 //        Book book = Book.builder()
 //                .title("Aventuras")
@@ -51,7 +51,7 @@ public class BookRepositoryTest {
         assertThat(exists).isTrue();
     }
 
-    private static Book createNewBook(String isbn) {
+    public static Book createNewBook(String isbn) {
         return Book.builder()
                 .title("Aventuras")
                 .author("Fulano")
@@ -63,7 +63,7 @@ public class BookRepositoryTest {
     @DisplayName("Deve retornar false quando não existir um livro na base com o isbn informado.")
     public void returnFalseWhenIsbnDoesntExists() {
         //cenario
-        String isbn = "1213213";
+        String isbn = "123";
 
         //execução
         boolean exists = repository.existsByIsbn(isbn);

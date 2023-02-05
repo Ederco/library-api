@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @AllArgsConstructor
@@ -20,12 +22,18 @@ public class Book {
     //valor adicionado ao id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     @Column //O nome da coluna na base de dados é
     // o mesmo da propriedade ,neste caso , "title"
     private String title;
+
     @Column
     private String author;
+
     @Column
     private String isbn;
+
+    @OneToMany( mappedBy = "book" )// fetch = FetchType.LAZY)// não é necessario pois o default é LAZY...
+    private List<Loan> loans;
 
 }

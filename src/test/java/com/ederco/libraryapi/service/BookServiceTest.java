@@ -71,11 +71,11 @@ public class BookServiceTest {
 
     @Test
     @DisplayName("Deve lançar erro de negócio ao tentar salvar um livro com isbn duplicado.")
-    public void shouldnotSavedbookWithDuplicatedISBN(){
+    public void shouldnotSavedbookWithDuplicatedISBN() {
         //cenário
         Book book = createValidBook();
         Mockito.when(repository.existsByIsbn(Mockito.anyString())).thenReturn(true);
-        
+
         //execucao
         Throwable exception = Assertions.catchThrowable(() -> service.save(book));
 
@@ -84,12 +84,13 @@ public class BookServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Isbn já cadastrado.");
         //verificando que após o erro o livro não deve ser salvo:
-        Mockito.verify(repository,Mockito.never()).save(book);
+        Mockito.verify(repository, Mockito.never()).save(book);
 
     }
+
     @Test
     @DisplayName("Deve obter um livro por Id")
-    public void getByIdTest(){
+    public void getByIdTest() {
         //cenário
         Long id = 1l;
 
@@ -107,9 +108,10 @@ public class BookServiceTest {
         assertThat(foundBook.get().getAuthor()).isEqualTo(book.getAuthor());
         assertThat(foundBook.get().getTitle()).isEqualTo(book.getTitle());
     }
+
     @Test
     @DisplayName("Deve retornar vazio ao obter um livro por Id quando ele não existe na base")
-    public void bookNotFoundByIdTest(){
+    public void bookNotFoundByIdTest() {
         //cenário
         Long id = 1l;
         //Deve retornar vazio , então não precisará do livro
@@ -127,9 +129,10 @@ public class BookServiceTest {
 //        assertThat(foundBook.get().getAuthor()).isEqualTo(book.getAuthor());
 //        assertThat(foundBook.get().getTitle()).isEqualTo(book.getTitle());
     }
+
     @Test
     @DisplayName("Deve deletar um livro")
-    public void deleteBookTest(){
+    public void deleteBookTest() {
         //cenário
         Book book = Book.builder().id(1l).build();
 
@@ -137,21 +140,23 @@ public class BookServiceTest {
         org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> service.delete(book));
 
         //verificação
-        Mockito.verify(repository , Mockito.times(1)).delete(book);
+        Mockito.verify(repository, Mockito.times(1)).delete(book);
     }
+
     @Test
     @DisplayName("Deve ocorrer erro ao tentar deletar um livro existente")
-    public void deleteInvalidBookTest(){
+    public void deleteInvalidBookTest() {
 
         Book book = new Book();
 
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, ()-> service.delete(book));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> service.delete(book));
 
-        Mockito.verify(repository,Mockito.never()).delete(book);
+        Mockito.verify(repository, Mockito.never()).delete(book);
     }
+
     @Test
     @DisplayName("Deve atualizar um livro")
-    public void updateBookTest(){
+    public void updateBookTest() {
         //cenário
         long id = 1l;
 
@@ -174,19 +179,21 @@ public class BookServiceTest {
         assertThat(book.getAuthor()).isEqualTo(updatedBook.getAuthor());
 
     }
+
     @Test
     @DisplayName("Deve ocorrer erro ao tentar atualizar um livro existente")
-    public void updateInvalidBookTest(){
+    public void updateInvalidBookTest() {
 
         Book book = new Book();
 
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, ()-> service.update(book));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> service.update(book));
 
-        Mockito.verify(repository,Mockito.never()).save(book);
+        Mockito.verify(repository, Mockito.never()).save(book);
     }
+
     @Test
     @DisplayName("Deve filtrar livros pelas propriedades")
-    public void findBookTest(){
+    public void findBookTest() {
         //cenario
         Book book = createValidBook();
 
@@ -207,6 +214,26 @@ public class BookServiceTest {
         assertThat(result.getContent()).isEqualTo(lista);
         assertThat(result.getPageable().getPageNumber()).isEqualTo(0);
         assertThat(result.getPageable().getPageSize()).isEqualTo(10);
+    }
+
+    @Test
+    @DisplayName("Deve obter um livro pelo isbn")
+    public void getBookByIsbnTest() {
+        //cenario
+        String isbn = "1230";
+        Mockito.when(repository.findByIsbn(isbn)).thenReturn(Optional.of(Book.builder()
+                .id(1L)
+                .isbn(isbn)
+                .build()));
+
+        Optional<Book> book = service.getBookByIsbn(isbn);
+
+        assertThat(book.isPresent()).isTrue();
+        assertThat(book.get().getId()).isEqualTo(1L);
+        assertThat(book.get().getIsbn()).isEqualTo(isbn);
+
+        Mockito.verify(repository).findByIsbn(isbn);
 
     }
+
 }
